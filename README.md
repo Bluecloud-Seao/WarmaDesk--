@@ -33,8 +33,8 @@ README.md版本：第一版第一次修订
 ![](https://markdown.liuchengtu.com/work/uploads/upload_fa7defe1ddb032f33413563dd00c6f75.gif)
 ![](https://markdown.liuchengtu.com/work/uploads/upload_4b59d4e54bac252bde922fb36c57dd31.gif)
 
-最后，感谢您支持我，谢谢！
+最后，感谢您支持我，谢谢！  
 
-1.1.0_240708第一版：2024年7月10日
-1.2.0_240714第一版第一次修订：2024年7月14日
+1.1.0_240708第一版：2024年7月10日  
+1.2.0_240714第一版第一次修订：2024年7月14日  
 
