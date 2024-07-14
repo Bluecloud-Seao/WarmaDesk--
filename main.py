@@ -1,12 +1,15 @@
 import tkinter as tk  
 from tkinter import messagebox
 from PIL import Image, ImageTk  
-import TkGifWidget
 import webbrowser
 import pystray
 import winsound
+from moviepy.editor import AudioFileClip
 import random
 from settings import SettingsWindow
+# 导入子目录中的模块
+import libs.TkGifWidget as TkGifWidget
+
   
 class PetWindow(tk.Tk):  
     def __init__(self, *args, **kwargs):  
@@ -21,7 +24,8 @@ class PetWindow(tk.Tk):
         y = (screen_height / 2) - (height / 2)
         self.geometry(f"{width}x{height}+{int(x)}+{int(y)}")  # 设置尺寸以及位置
         self.overrideredirect(True)  # 去除边框  
-        self.attributes("-topmost", True)  # 置于顶层  
+        self.attributes("-topmost", True)  # 置于顶层
+        self.iconbitmap('icon.ico')  # 设置窗口图标(主要是messagebox)  
   
         # 设置背景图像  
         self.set_background_image("Image\\Background.png")  
@@ -67,6 +71,8 @@ class PetWindow(tk.Tk):
         else:
             try:
                 sound = random.choice(sound_path)
+                sound_clip = AudioFileClip(sound)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound,  winsound.SND_ASYNC | winsound.SND_FILENAME)  #播放音频(下同)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -76,7 +82,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.talk_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.talk_gif.pack(expand=True, fill="both") 
-            self.talk_gif.after(2000, func=self.talk_gif.destroy)  #播放GIF动图(下同)
+            self.talk_gif.after(int(sound_time * 1000), func=self.talk_gif.destroy)  #播放GIF动图(下同)
             
     def menu_walk(self, image_path, sound_path):
         packed_widgets = self.warma_label.pack_slaves()
@@ -86,6 +92,8 @@ class PetWindow(tk.Tk):
             x = random.randint(0, self.winfo_screenwidth())
             y = random.randint(0, self.winfo_screenheight())
             try:
+                sound_clip = AudioFileClip(sound_path)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -95,7 +103,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.walk_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.walk_gif.pack(expand=True, fill="both") 
-            self.walk_gif.after(5000, func=self.walk_gif.destroy)
+            self.walk_gif.after(int(sound_time * 1000), func=self.walk_gif.destroy)
             self.geometry("+{0}+{1}".format(x, y)) 
         
     def menu_sleep(self, image_path, sound_path, auto):
@@ -116,7 +124,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.sleep_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.sleep_gif.pack(expand=True, fill="both") 
-            self.sleep_gif.after(600000, func=self.sleep_gif.destroy)
+            self.sleep_gif.after(600000, func=self.sleep_gif.destroy)  # 睡觉时间依旧固定,不该时间
         
     def menu_eatshark(self, image_path, sound_path, auto):
         packed_widgets = self.warma_label.pack_slaves()
@@ -124,6 +132,8 @@ class PetWindow(tk.Tk):
             messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
         else:
             try:
+                sound_clip = AudioFileClip(sound_path)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -133,7 +143,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.eatshark_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.eatshark_gif.pack(expand=True, fill="both")
-            self.eatshark_gif.after(3000, func=self.eatshark_gif.destroy)
+            self.eatshark_gif.after(int(sound_time * 1000), func=self.eatshark_gif.destroy)
         
     def menu_nicesound(self, image_path, sound_path):
         packed_widgets = self.warma_label.pack_slaves()
@@ -141,6 +151,8 @@ class PetWindow(tk.Tk):
             messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
         else:
             try:
+                sound_clip = AudioFileClip(sound_path)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -150,7 +162,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.nicesound_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.nicesound_gif.pack(expand=True, fill="both")  
-            self.nicesound_gif.after(150000, func=self.nicesound_gif.destroy)
+            self.nicesound_gif.after(int(sound_time * 1000), func=self.nicesound_gif.destroy)
         
     def menu_eatearth(self, image_path, sound_path):
         packed_widgets = self.warma_label.pack_slaves()
@@ -158,6 +170,8 @@ class PetWindow(tk.Tk):
             messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
         else:
             try:
+                sound_clip = AudioFileClip(sound_path)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -167,7 +181,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.eatearth_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.eatearth_gif.pack(expand=True, fill="both") 
-            self.eatearth_gif.after(2000, func=self.eatearth_gif.destroy)          
+            self.eatearth_gif.after(int(sound_time * 1000), func=self.eatearth_gif.destroy)          
         
     def menu_buy(self, image_path, sound_path):
         packed_widgets = self.warma_label.pack_slaves()
@@ -175,6 +189,8 @@ class PetWindow(tk.Tk):
             messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
         else:
             try:
+                sound_clip = AudioFileClip(sound_path)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -184,7 +200,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.buy_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.buy_gif.pack(expand=True, fill="both") 
-            self.buy_gif.after(5005, func=self.buy_gif.destroy)
+            self.buy_gif.after(int(sound_time * 1000), func=self.buy_gif.destroy)
             
     def menu_shark(self, image_path, sound_path):
         packed_widgets = self.warma_label.pack_slaves()
@@ -192,6 +208,8 @@ class PetWindow(tk.Tk):
             messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
         else:
             try:
+                sound_clip = AudioFileClip(sound_path)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -201,7 +219,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.shark_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.shark_gif.pack(expand=True, fill="both") 
-            self.shark_gif.after(1000, func=self.shark_gif.destroy)
+            self.shark_gif.after(int(sound_time * 1000), func=self.shark_gif.destroy)
         
     def menu_spider(self, image_path, sound_path):
         packed_widgets = self.warma_label.pack_slaves()
@@ -209,6 +227,8 @@ class PetWindow(tk.Tk):
             messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
         else:
             try:
+                sound_clip = AudioFileClip(sound_path)
+                sound_time = sound_clip.duration
                 winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
             except FileNotFoundError as e:
                 messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
@@ -218,7 +238,7 @@ class PetWindow(tk.Tk):
                 messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
             self.spider_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
             self.spider_gif.pack(expand=True, fill="both") 
-            self.spider_gif.after(1000, func=self.spider_gif.destroy)
+            self.spider_gif.after(int(sound_time * 1000), func=self.spider_gif.destroy)
     
     def menu_wakeup(self, sound_path):
         try:

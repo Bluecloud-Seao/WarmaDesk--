@@ -51,8 +51,12 @@ class SettingsWindow(tk.Toplevel):
         self.geometry("{0}x{1}".format(self.winfo_width() - 10, self.winfo_height() - 10))
 
     def update_event(self, event):
-        webbrowser.open(url="https://space.bilibili.com/1858500718/dynamic", new=2)
+        webbrowser.open(url="https://github.com/Bluecloud-Seao/WarmaDesk--/releases", new=2)
         self.destroy()
+
+    def about_event(self, event):
+        webbrowser.open(url="https://space.bilibili.com/1858500718", new=2)
+        webbrowser.open(url="https://github.com/Bluecloud-Seao/WarmaDesk--/blob/main/LICENSE", new=2)
 
     # Command调用函数
     def button_visit(self):
@@ -169,8 +173,9 @@ class SettingsWindow(tk.Toplevel):
 
         tab_update = ttk.Labelframe(notebook, text="点击任意处以更新", height=750, width=1000)
         tab_update.bind("<Button-1>", self.update_event)
+        tab_update.bind("<Button-3>", self.about_event)
         notebook.add(tab_update, text="更新")
         # 更新标签
-        tab_update_label = tk.Label(tab_update, text="点击任意处更新", font=("微软雅黑", 15), foreground="#DDDDDD")
+        tab_update_label = tk.Label(tab_update, text="左键任意处更新,右键任意处查看作者信息与开源协议", font=("微软雅黑", 15), foreground="#DDDDDD")
         tab_update_label.pack()
         # 更新标签中的文本(懒得写布局了)
