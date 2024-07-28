@@ -1,4 +1,4 @@
-# **<font class="text-color-7" color="#03a9f4">WarmaDesk-沃玛桌宠 1.2.0_240714</font>**
+# **<font class="text-color-7" color="#03a9f4">WarmaDesk-沃玛桌宠 1.5.1_240728</font>**
 * ### 程序介绍
 沃玛桌宠是一款桌面宠物软件，根据MIT协议开源，由时年12岁的B站用户[“只是一个球_”](https://space.bilibili.com/1858500718)独立开发，由于B站粉丝较少，还无收益，纯粹用爱发电，希望大家多多关注或三连，支持我继续做下去。程序中形象来自于B站知名UP主“[Warma](https://space.bilibili.com/53456)”，灵感来源于B站UP主“[Funtime工作室](https://space.bilibili.com/629852514)”，向以上提到的两位UP主表示感谢！
 
