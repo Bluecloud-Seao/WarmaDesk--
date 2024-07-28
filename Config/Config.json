@@ -1,0 +1,24 @@
+{
+    "window": {
+        "title": "沃玛桌宠 -WarmaDesk",
+        "height": 400,
+        "width": 400,
+        "no_header": true,
+        "topmost": true,
+        "trans": true,
+        "icon": "icon.ico",
+        "settings_window_theme": "light"
+    },
+    "pets": {
+        "master": "Warma",
+        "auto_trigger_time": 2
+    },
+    "info": {
+        "name": "沃玛桌宠",
+        "version": "1.5.0_240721",
+        "author": "只是一个球_",
+        "bilibili_page": "https://space.bilibili.com/1858500718",
+        "github_page": "https://github.com/Bluecloud-Seao/WarmaDesk--/tree/main?tab=readme-ov-file",
+        "License": "MIT"
+    }
+}

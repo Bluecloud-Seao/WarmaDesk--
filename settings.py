@@ -1,181 +1,243 @@
 import tkinter as tk
-from tkinter import ttk
-import time
+from tkinter import ttk, messagebox
+import json
 import sv_ttk
-import webbrowser
+import winreg as reg
+import sys
 import os
+import webbrowser
 
 class SettingsWindow(tk.Toplevel):
-    def __init__ (self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.title("Warma桌宠设置")
-        # 计算窗口位置和尺寸
+
+        # 加载数据
+        self.load_config_json("Config\\Config.json")
+
+        # 加载长文本
+        self.load_welcome_text("Public\\Welcome.txt")
+
+        # 窗口基本信息
+        self.title("沃玛桌宠 -设置")
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
-        width = 1000
-        height = 750
-        x = (screen_width / 2) - (width / 2)
-        y = (screen_height / 2) - (height / 2)
-        self.geometry(f"{width}x{height}+{int(x)}+{int(y)}")  # 设置尺寸以及位置
-        self.overrideredirect(True)  # 去除边框
-        sv_ttk.use_light_theme()  # 运用sv_ttk主题
-        
-        # 渲染窗口
-        self.window()
-        self.main()
+        self.width = 500
+        self.height = 600
+        x = (screen_width / 2) - (self.width / 2)
+        y = (screen_height / 2) - (self.height / 2)
+        self.geometry(f"{self.width}x{self.height}+{int(x)}+{int(y)}")
+        self.iconbitmap(self.config['window']['icon'])
 
-    # 事件函数    
-    def title_mouse_touch_event(self, event):  # 记录鼠标按下标题
-        self.start_x = self.winfo_pointerx() - self.winfo_rootx()
-        self.start_y = self.winfo_pointery() - self.winfo_rooty()
-        
-    def title_mouse_move_event(self, event):  # 记录鼠标移动
-        self.deltax = self.winfo_pointerx() - self.start_x
-        self.deltay = self.winfo_pointery() - self.start_y
-        self.geometry("+{0}+{1}".format(self.deltax, self.deltay))
-        
-    def fullscreen_event(self, event):  #窗口最大化
-        self.overrideredirect(False)
-        self.attributes("-fullscreen", True)
-        
-    def unfullscreen_event(self, event):
-        self.overrideredirect(True)
-        self.attributes("-fullscreen", False)
-        
-    def exit_event(self, event):
-        self.window_title_button_exit.bg = "#EC0000"
-        time.sleep(0.1)
-        self.destroy()
-        
-    def resize_event(self, event):
-        self.geometry("{0}x{1}".format(self.winfo_width() - 10, self.winfo_height() - 10))
+        # 程序信息
+        self.python_exe = sys.executable
+        self.script_path = os.path.realpath(__file__)
 
-    def update_event(self, event):
-        webbrowser.open(url="https://github.com/Bluecloud-Seao/WarmaDesk--/releases", new=2)
-        self.destroy()
+        try:
+            sv_ttk.set_theme(self.config['window']['settings_window_theme'])
+        except Exception as e:
+            self.exception(e)
 
-    def about_event(self, event):
-        webbrowser.open(url="https://space.bilibili.com/1858500718", new=2)
-        webbrowser.open(url="https://github.com/Bluecloud-Seao/WarmaDesk--/blob/main/LICENSE", new=2)
+        # 初始化变量
+        self.title_var = tk.StringVar(self, value=self.config['window']['title'])
+        self.width_var = tk.StringVar(self, value=str(self.config['window']['width']))
+        self.height_var = tk.StringVar(self, value=str(self.config['window']['height']))
+        self.topmost_var = tk.BooleanVar(self, value=self.config['window']['topmost'])
+        self.trans_var = tk.BooleanVar(self, value=self.config['window']['trans'])
+        self.icon_var = tk.StringVar(self, value=self.config['window']['icon'])
+        self.master_var = tk.StringVar(self, value=self.config['pets']['master'])
+        self.auto_trigger_time_var = tk.StringVar(self, value=str(self.config['pets']['auto_trigger_time']))
 
-    # Command调用函数
-    def button_visit(self):
-        webbrowser.open(url="https://space.bilibili.com/1858500718", new=2)
+        # 创建窗口
+        self.create_notebook()
+        self.create_welcome_window()
+        self.create_info_window()
+        self.create_window_settings()
+        self.create_pets_settings()
+        self.create_update_settings()
 
-    def button_imagefiles(self):
-        os.startfile("Image\\")
+    # 加载数据函数
+    def load_config_json(self, path):
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                self.config = json.load(file)
+        except FileNotFoundError:
+            self.config = {
+                "window": {"title": "沃玛桌宠-WarmaDesk", "width": 400, "height": 400, "topmost": True, "trans": True, "icon": "icon.ico"},
+                "pets": {"master": "Warma", "auto_trigger_time": 10}
+            }
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump(self.config, file, ensure_ascii=False, indent=4)
+        except Exception as e:
+            messagebox.showerror("错误", f"加载配置文件时发生错误: {e}")
 
-    def button_soundfiles(self):
-        os.startfile("Sound\\")
+    def load_welcome_text(self, path):
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                self.welcome_text = file.read()
+        except FileNotFoundError:
+            self.welcome_text = "欢迎文本未找到。"
+        except Exception as e:
+            messagebox.showerror("错误", f"加载欢迎文本时发生错误: {e}")
 
-    # 窗口函数    
-    def window(self):
-        window_background = tk.Frame(self, height=750, width=1000, bg="#61bbd1")
-        window_background.pack(expand=True, fill="both")
-        # 窗口背景
-        window_title = tk.Frame(window_background, height=50, width=1000, bg="#61bbd1")
-        window_title.pack(side="top", anchor="n" ,expand=True, fill="x")
-        window_title.pack_propagate(False)
-        window_title.bind("<Button-1>", self.title_mouse_touch_event)
-        window_title.bind("<B1-Motion>", self.title_mouse_move_event)
-        # 窗口标题栏
-        window_title_labelframe = tk.Frame(window_title, height=50, width=80, bg="#61bbd1")
-        window_title_labelframe.pack(side="left", anchor="w", expand=True, fill="y", padx=10, pady=10)
-        # 标题容器
-        window_title_label = tk.Label(window_title_labelframe, text="Warma桌宠", font=("微软雅黑", 12), bg="#61bbd1")
-        window_title_label.pack(expand=True, fill="both", padx=5, pady=5)
-        window_title_label.bind("<Button-1>", self.fullscreen_event)
-        window_title_label.bind("<Button-3>", self.unfullscreen_event)
-        # 窗口标题
-        window_title_buttonframe = tk.Frame(window_title, height=50, width=100, bg="#61bbd1")
-        window_title_buttonframe.pack(side="right", anchor="e", expand=True, fill="y", padx=10, pady=10)
-        # 标题按钮容器
-        self.window_title_button_exit = tk.Label(window_title_buttonframe, text="X", font=("微软雅黑", 15, "bold"), bg="#61bbd1")
-        self.window_title_button_exit.pack(expand=True, fill="both", padx=5, pady=5)
-        self.window_title_button_exit.bind("<Button-1>", self.exit_event)
-        self.window_title_button_exit.bind("<Button-3>", self.resize_event)
-        # 标题按钮
-        self.window_main = tk.Frame(window_background, height=700, width=1000)
-        self.window_main.pack(side="bottom", anchor="s", expand=True, fill="both", padx=10, pady=10)
-        self.window_main.pack_propagate(False)
-        # 窗口主体
-        
-    def main(self):
-        notebook = ttk.Notebook(self.window_main)
+    # 开机自启动函数
+    def create_task(self):
+        key = reg.OpenKey(reg.HKEY_CURRENT_USER,
+                        r"Software\Microsoft\Windows\CurrentVersion\Run",
+                        0, reg.KEY_SET_VALUE)
+
+        reg.SetValueEx(key, "My Python Program", 0, reg.REG_SZ,
+                    '{} "{}"'.format(self.python_exe, self.script_path))
+        reg.CloseKey(key)
+
+    def delete_task(self):
+        try:
+            key = reg.OpenKey(reg.HKEY_CURRENT_USER,
+                            r"Software\Microsoft\Windows\CurrentVersion\Run",
+                            0, reg.KEY_ALL_ACCESS)
+            reg.DeleteValue(key, "My Python Program")
+
+            reg.CloseKey(key)
+        except FileNotFoundError:
+            pass
+
+    # 窗口控件函数
+    def create_notebook(self):
+        notebook = ttk.Notebook(self)
         notebook.pack(expand=True, fill="both", padx=5, pady=5)
-        # 标签栏
 
-        tab_tips = ttk.Labelframe(notebook, text="程序介绍", height=750, width=1000)
-        notebook.add(tab_tips, text="程序介绍")
-        # 程序介绍标签
-        tab_tips_titleframe = tk.Frame(tab_tips, height=50, width=1000)
-        tab_tips_titleframe.pack(side="top", anchor="n", padx=10, pady=10)
-        tab_tips_titleframe.pack_propagate(False)
-        # 介绍标题容器
-        tab_tips_title = tk.Label(tab_tips_titleframe, text="使用小贴士", font=("微软雅黑", 20))
-        tab_tips_title.pack(side="left", anchor="w", expand=True, fill="y")
-        # 程序介绍标题
-        tab_tips_mainframe = tk.Frame(tab_tips, height=650, width=1000)
-        tab_tips_mainframe.pack(side="top", anchor="n", expand=True, fill="x", padx=10, pady=10)
-        # 程序主文本容器
-        tab_tips_maintext = "欢迎使用Warma桌宠！非常感谢您选择我们！特别鸣谢B站UP主 @FunTime工作室 提供灵感\n1) 主窗口（Warma窗口）\n    鼠标左键长按Warma并拖动可移动Warma，右键可打开功能菜单——播放动画或执行其他操作。\n2) 设置窗口\n    设置窗口标题栏为作者自行编写，因此操作方法与传统窗口不同。鼠标左键点击窗口标题可全屏窗口（含有标题变大的BUG），右键即可恢复大小。鼠标左键长按顶端蓝色区域并拖动可更改窗口位置（与传统窗口无异）。鼠标左键点击右上角“X”可关闭窗口，右键点击则缩小窗口。\n3) 小托盘\n    Warma窗口右键菜单中选择“收入小托盘”即可把程序收入系统托盘（免打扰模式）。收入小托盘后程序图标就是Warma，右键即可打开菜单。"
-        tab_tips_main = tk.Message(tab_tips_mainframe, text=tab_tips_maintext, font=("微软雅黑", 12), width=920)
-        tab_tips_main.pack(side="top", anchor="n", expand=True, fill="both", padx=10, pady=10)
-        # 程序主文本
-        tab_tips_buttonframe_about = tk.Frame(tab_tips, height=50, width=1000)
-        tab_tips_buttonframe_about.pack(side="bottom", anchor="s", expand=True, fill="x", padx=10, pady=10)
-        # 按钮容器
-        tab_tips_button_about = ttk.Button(tab_tips_buttonframe_about, text="关于作者", width=20, style="Accent.TButton", command=self.button_visit)
-        tab_tips_button_about.pack(side="right", anchor="e", expand=True, fill="y", padx=5, pady=5)
-        # “关于作者”按钮
+        self.welcome_tap = ttk.Labelframe(notebook, text="欢迎")
+        notebook.add(self.welcome_tap, text="欢迎")
 
-        tab_images = ttk.Labelframe(notebook, text="更改图像", height=750, width=1000)
-        notebook.add(tab_images, text="更改图像")
-        # 更改图像标签
-        tab_images_titleframe = tk.Frame(tab_images, height=50, width=1000)
-        tab_images_titleframe.pack(side="top", anchor="n", padx=10, pady=10)
-        tab_images_titleframe.pack_propagate(False)
-        # 标题容器
-        tab_images_title = tk.Label(tab_images_titleframe, text="更改图像", font=("微软雅黑", 20))
-        tab_images_title.pack(side="left", anchor="w", expand=True, fill="y")        
-        # 标题
-        tab_images_mainframe = tk.Frame(tab_images, height=700, width=1000)
-        tab_images_mainframe.pack(side="top", anchor="n", expand=True, fill="both", padx=10, pady=10)
-        # 主容器
-        tab_images_label_text = "欲更换图像，请点击下方按钮打开图像文件夹，并将目标文件(必须为.gif文件)更名为目标文件名后粘贴进文件夹即可。(Warma这么可爱你不会想换掉她吧)"
-        tab_images_label = tk.Label(tab_images_mainframe, text=tab_images_label_text, font=("微软雅黑", 10))
-        tab_images_label.pack(side="top", anchor="w", padx=10, pady=10)
-        # 文本(不知如何注释)
-        tab_images_button_changefiles = ttk.Button(tab_images_mainframe, text="打开图像文件夹", width=20, style="Accent.TButton", command=self.button_imagefiles)
-        tab_images_button_changefiles.pack(side="top", anchor="w", padx=10, pady=10)
-        # 按钮
+        self.info_tap = ttk.Labelframe(notebook, text="信息")
+        notebook.add(self.info_tap, text="信息")
 
-        tab_sound = ttk.Labelframe(notebook, text="更改音频", height=750, width=1000)
-        notebook.add(tab_sound, text="更改音频")
-        # 更改音频标签
-        tab_sound_titleframe = tk.Frame(tab_sound, height=50, width=1000)
-        tab_sound_titleframe.pack(side="top", anchor="n", padx=10, pady=10)
-        tab_sound_titleframe.pack_propagate(False)
-        # 标题容器
-        tab_sound_title = tk.Label(tab_sound_titleframe, text="更改音频", font=("微软雅黑", 20))
-        tab_sound_title.pack(side="left", anchor="w", expand=True, fill="y")        
-        # 标题
-        tab_sound_mainframe = tk.Frame(tab_sound, height=700, width=1000)
-        tab_sound_mainframe.pack(side="top", anchor="n", expand=True, fill="both", padx=10, pady=10)
-        # 主容器
-        tab_sound_label_text = "欲更换音频，请点击下方按钮打开音频文件夹，并将目标文件(必须为.wav文件)更名为目标文件名后粘贴进文件夹即可。(Warma这么可爱你不会想换掉她吧)"
-        tab_sound_label = tk.Label(tab_sound_mainframe, text=tab_sound_label_text, font=("微软雅黑", 10))
-        tab_sound_label.pack(side="top", anchor="w", padx=10, pady=10)
-        # 文本(不知如何注释)
-        tab_sound_button_changefiles = ttk.Button(tab_sound_mainframe, text="打开音频文件夹", width=20, style="Accent.TButton", command=self.button_soundfiles)
-        tab_sound_button_changefiles.pack(side="top", anchor="w", padx=10, pady=10)
-        # 按钮
+        self.window_tap = ttk.Labelframe(notebook, text="窗口")
+        notebook.add(self.window_tap, text="窗口")
 
-        tab_update = ttk.Labelframe(notebook, text="点击任意处以更新", height=750, width=1000)
-        tab_update.bind("<Button-1>", self.update_event)
-        tab_update.bind("<Button-3>", self.about_event)
-        notebook.add(tab_update, text="更新")
-        # 更新标签
-        tab_update_label = tk.Label(tab_update, text="左键任意处更新,右键任意处查看作者信息与开源协议", font=("微软雅黑", 15), foreground="#DDDDDD")
-        tab_update_label.pack()
-        # 更新标签中的文本(懒得写布局了)
+        self.pets_tap = ttk.Labelframe(notebook, text="宠物")
+        notebook.add(self.pets_tap, text="宠物")
+
+        self.update_tab = ttk.Labelframe(notebook, text="更新")
+        notebook.add(self.update_tab, text="更新")
+
+    def create_welcome_window(self):
+        title = ttk.Label(self.welcome_tap, text=f"欢迎 \^o^/", font=("微软雅黑", 20))
+        text = tk.Text(self.welcome_tap, state="normal", font=("微软雅黑", 10), wrap="word")
+        text.insert(tk.END, self.welcome_text)
+        text['state'] = "disabled"
+
+        scroll_bar = ttk.Scrollbar(self.welcome_tap, orient='vertical', command=text.yview)
+        text.config(yscrollcommand=scroll_bar.set)
+
+        title.pack(side="top", anchor="w", padx=10, pady=10)
+        text.pack(side="top", expand=True, fill="both", padx=10, pady=10)
+        scroll_bar.pack(side="right", fill="y")
+
+    def create_info_window(self):
+        info_title = ttk.Label(self.info_tap, text="程序信息", font=("微软雅黑", 20))
+        info_title.pack(side="top", anchor="w", padx=10, pady=10)
+
+        info_name_label = ttk.Label(self.info_tap, text=f"名称: {self.config['info']['name']}")
+        info_name_label.pack(side="top", anchor="w", padx=10, pady=5)
+
+        info_version_label = ttk.Label(self.info_tap, text=f"版本: {self.config['info']['version']}")
+        info_version_label.pack(side="top", anchor="w", padx=10, pady=5)
+
+        info_author_label = ttk.Label(self.info_tap, text=f"作者: {self.config['info']['author']}")
+        info_author_label.pack(side="top", anchor="w", padx=10, pady=5)
+
+        info_bilibili_label = ttk.Label(self.info_tap, text=f"Bilibili页面: {self.config['info']['bilibili_page']}")
+        info_bilibili_label.pack(side="top", anchor="w", padx=10, pady=5)
+        info_bilibili_label.bind("<Button-1>", self.open_bilibili_page)
+
+        info_github_label = ttk.Label(self.info_tap, text=f"GitHub页面: {self.config['info']['github_page']}")
+        info_github_label.pack(side="top", anchor="w", padx=10, pady=5)
+        info_github_label.bind("<Button-1>", self.open_github_page)
+
+        info_license_label = ttk.Label(self.info_tap, text=f"许可证: {self.config['info']['License']}")
+        info_license_label.pack(side="top", anchor="w", padx=10, pady=5)
+
+        ttk.Frame(self.info_tap, height=20).pack(side="top", fill="x")
+
+    def create_window_settings(self):
+        frame = ttk.Frame(self.window_tap)
+        frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+
+        self.title_var = self.create_label_entry(frame, "窗口标题:", "title", "window")
+        self.width_var = self.create_label_entry(frame, "窗口宽度:","width", "window")
+        self.height_var = self.create_label_entry(frame, "窗口高度:", "height", "window")
+        self.topmost_var = self.create_checkbutton(frame, "窗口置顶", "topmost", "window")
+        self.trans_var = self.create_checkbutton(frame, "窗口透明度", "trans", "window")
+        self.icon_var = self.create_label_entry(frame, "窗口图标:", "icon", "window")
+
+        save_button = ttk.Button(frame, text="保存设置", command=self.save_settings, style="Accent.TButton", width=20)
+        save_button.pack(side="bottom", pady=20)
+
+        autorun_button = ttk.Button(frame, text="禁用开机启动", command=self.delete_task, width=20)
+        autorun_button.pack(side="bottom", pady=10)
+
+        autorun_button = ttk.Button(frame, text="启用开机启动", command=self.create_task, width=20)
+        autorun_button.pack(side="bottom", pady=10)
+
+    def create_pets_settings(self):
+        frame = ttk.Frame(self.pets_tap)
+        frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+
+        self.master_var = self.create_label_entry(frame, "主宠物目录名称(尽量不要改):", "master", "pets")
+        self.auto_trigger_time_var = self.create_label_entry(frame, "自动触发时间 (分钟):", "auto_trigger_time", "pets")
+
+        save_button = ttk.Button(frame, text="保存设置", command=self.save_settings, style="Accent.TButton", width=20)
+        save_button.pack(side="bottom", pady=20)
+
+    def create_update_settings(self):
+        frame = ttk.Frame(self.update_tab)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        ttk.Button(frame, text="检查更新", command=self.check_updates, style="Accent.TButton", width=100).pack(side="top", pady=20)
+
+    def check_updates(self):
+        webbrowser.open(url="https://space.bilibili.com/1858500718/dynamic", new=2)
+
+    def create_label_entry(self, frame, label_text, option_key, setting_section):
+        entry_var = tk.StringVar(value=self.config[setting_section][option_key])
+        label = ttk.Label(frame, text=label_text)
+        label.pack(side="top", anchor="nw", padx=5, pady=5)
+        entry = ttk.Entry(frame, textvariable=entry_var)
+        entry.pack(side="top", anchor="n", fill="x", expand=True)
+        return entry_var
+
+    def create_checkbutton(self, frame, text, variable_key, setting_section):
+        var = tk.BooleanVar(value=self.config[setting_section][variable_key])
+        check = ttk.Checkbutton(frame, text=text, variable=var, style="Switch.TCheckbutton")
+        check.pack(side="top")
+        return var
+
+    def save_settings(self):
+        try:
+            self.config['window']['title'] = self.title_var.get()
+            self.config['window']['width'] = int(self.width_var.get())
+            self.config['window']['height'] = int(self.height_var.get())
+            self.config['window']['topmost'] = self.topmost_var.get()
+            self.config['window']['trans'] = self.trans_var.get()
+            self.config['window']['icon'] = self.icon_var.get()
+
+            self.config['pets']['master'] = self.master_var.get()
+            auto_trigger_time = self.auto_trigger_time_var.get()
+            if auto_trigger_time.isdigit():
+                self.config['pets']['auto_trigger_time'] = int(auto_trigger_time)
+            else:
+                messagebox.showerror("错误", "自动触发时间必须是有效的整数。")
+                return
+
+            with open('Config\\Config.json', 'w', encoding='utf-8') as config_file:
+                json.dump(self.config, config_file, ensure_ascii=False, indent=4)
+            messagebox.showinfo("成功", "设置已保存。")
+        except Exception as e:
+            messagebox.showerror("错误", f"保存设置时发生错误: {e}")
+
+    # 网页跳转函数
+    def open_bilibili_page(self, event):
+        webbrowser.open(url=self.config['info']['bilibili_page'], new=2)
+
+    def open_github_page(self, event):
+        webbrowser.open(url=self.config['info']['github_page'], new=2)

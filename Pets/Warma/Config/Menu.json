@@ -1,0 +1,79 @@
+{
+    "menu_items": {
+        "说话": {
+            "image_path": "Pets\\Warma\\Image\\talk.gif",
+            "sound_path": [
+                "Pets\\Warma\\Sound\\talk_1.wav",
+                "Pets\\Warma\\Sound\\talk_2.wav",
+                "Pets\\Warma\\Sound\\talk_3.wav",
+                "Pets\\Warma\\Sound\\talk_4.wav"
+            ],
+            "move": false,
+            "end_until_sound": true,
+            "multi_sound": true
+        },
+        "爬行": {
+            "image_path": "Pets\\Warma\\Image\\crawl.gif",
+            "sound_path": "Pets\\Warma\\Sound\\bye.wav",
+            "move": true,
+            "end_until_sound": false,
+            "multi_sound": false,
+            "move_speed": 25,
+            "is_move_right": false
+        },
+        "买吗": {
+            "image_path": "Pets\\Warma\\Image\\buy.gif",
+            "sound_path": "Pets\\Warma\\Sound\\buy.wav",
+            "move": false,
+            "end_until_sound": false,
+            "multi_sound": false
+        },
+        "睡觉": {
+            "image_path": "Pets\\Warma\\Image\\sleep.gif",
+            "sound_path": "Pets\\Warma\\Sound\\sleep.wav",
+            "move": false,
+            "end_until_sound": false,
+            "multi_sound": false
+        },
+        "蜘蛛啊": {
+            "image_path": "Pets\\Warma\\Image\\spider.gif",
+            "sound_path": "Pets\\Warma\\Sound\\spider.wav",
+            "move": false,
+            "end_until_sound": false,
+            "multi_sound": false
+        },
+        "吹灭人器": {
+            "image_path": "Pets\\Warma\\Image\\nicesound.gif",
+            "sound_path": [
+                "Pets\\Warma\\Sound\\nicesound.wav",
+                "Pets\\Warma\\Sound\\nicesound_2.wav"
+            ],
+            "move": false,
+            "end_until_sound": true,
+            "multi_sound": true
+        }
+    },
+    "auto_items": {
+          "说话": {
+            "image_path": "Pets\\Warma\\Image\\talk.gif",
+            "sound_path": [
+                "Pets\\Warma\\Sound\\talk_1.wav",
+                "Pets\\Warma\\Sound\\talk_2.wav",
+                "Pets\\Warma\\Sound\\talk_3.wav",
+                "Pets\\Warma\\Sound\\talk_4.wav"
+            ],
+            "end_until_sound": true,
+            "move": false,
+            "multi_sound": true
+        },
+        "爬行": {
+            "image_path": "Pets\\Warma\\Image\\crawl.gif",
+            "sound_path": "Pets\\Warma\\Sound\\bye.wav",
+            "move": true,
+            "end_until_sound": false,
+            "multi_sound": false,
+            "move_speed": 25,
+            "is_move_right": false
+        }
+    }
+}

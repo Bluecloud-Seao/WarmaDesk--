@@ -1,0 +1,20 @@
+{
+    "menu_items": {
+        "好耶": {
+            "image_path": "Pets\\Shark\\Image\\yeah.gif",
+            "sound_path": "Pets\\Shark\\Sound\\yeah.wav",
+            "move": false,
+            "end_until_sound": false,
+            "multi_sound": false
+        }
+    },
+    "auto_items": {
+        "好耶": {
+            "image_path": "Pets\\Shark\\Image\\yeah.gif",
+            "sound_path": "Pets\\Shark\\Sound\\yeah.wav",
+            "move": false,
+            "end_until_sound": false,
+            "multi_sound": false
+        }  
+    }
+}

@@ -1,270 +1,337 @@
 import tkinter as tk  
 from tkinter import messagebox
 from PIL import Image, ImageTk  
-import webbrowser
-import pystray
 import winsound
 from moviepy.editor import AudioFileClip
 import random
+import json
+import pystray
+import os
+import sys
 from settings import SettingsWindow
 # 导入子目录中的模块
 import libs.TkGifWidget as TkGifWidget
-
   
 class PetWindow(tk.Tk):  
     def __init__(self, *args, **kwargs):  
         super().__init__(*args, **kwargs)  
-        self.title("Warma桌宠")  
-        # 计算窗口位置和尺寸
+        # 透明颜色
+        self.TRANSCOLOUR = "gray"
+
+        #初始化动画组件
+        self.animation = None
+
+        # 初始化呼吸动画
+        self.breathing_factor = 0.008  # 呼吸效果的缩放比例因子
+        self.breathing_speed = 550  # 注意!数值越小，动画越快
+
+        # 加载数据
+        self.load_config_json("Config\\Config.json")  # 公共数据
+        self.load_pet_info_json(f"Pets\\{self.config['pets']['master']}\\Config\\Info.json")
+        self.load_pet_menu_json(f"Pets\\{self.config['pets']['master']}\\Config\\Menu.json")
+
+        # 窗口基本信息
+        self.title(self.config['window']['title'])  
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
-        width = 200
-        height = 200
-        x = (screen_width / 2) - (width / 2)
-        y = (screen_height / 2) - (height / 2)
-        self.geometry(f"{width}x{height}+{int(x)}+{int(y)}")  # 设置尺寸以及位置
-        self.overrideredirect(True)  # 去除边框  
-        self.attributes("-topmost", True)  # 置于顶层
-        self.iconbitmap('icon.ico')  # 设置窗口图标(主要是messagebox)  
-  
-        # 设置背景图像  
-        self.set_background_image("Image\\Background.png")  
-        #设置初始图片
-        self.set_warma_image("Image\\stand.png")
-        # 绑定事件  
-        self.bind_mouse_menu()
+        self.width = self.config['window']['width']
+        self.height = self.config['window']['height']
+        x = screen_width - self.width - 10
+        y = screen_height - self.height -10
+        self.geometry(f"{self.width}x{self.height}+{int(x)}+{int(y)}")  # 设置尺寸以及位置
+        self.overrideredirect(self.config['window']['no_header'])  # 去除边框  
+        self.attributes("-topmost", self.config['window']['topmost'])  # 置于顶层
+        self.iconbitmap(self.config['window']['icon'])  # 设置窗口图标(主要是messagebox)
+        self.wm_attributes("-transparentcolor", self.TRANSCOLOUR)  
+        if self.config['window']['trans']:
+            self.configure(background=self.TRANSCOLOUR)  # 窗口背景透明
+
+        # 定时播放自动动画
+        auto_trigger_time = self.config['pets']['auto_trigger_time']
+        self.after(auto_trigger_time * 60 * 1000, func=self.auto_animation_play)
+
+        # 加载宠物名称函数
+        self.load_pet_names("Pets", "Config", "Info.json")
+
+        # 加载主图片
+        self.set_pet_image()
+
+        # 绑定事件函数
         self.bind_mouse_touch() 
         self.bind_mouse_move() 
-  
-    def set_background_image(self, image_path):  
-        # 加载并调整图像大小  
-        image = Image.open(image_path)  
-        image = image.resize((200, 200), Image.LANCZOS)  
-        photo = ImageTk.PhotoImage(image)  
-    
-        self.background_label = tk.Label(self, image=photo)  
-        self.background_label.pack(expand=True, fill="both")  
-  
-        # 保持对PhotoImage的引用  
-        self.background_label.image = photo 
-        
-    def set_warma_image(self, image_path):
-        # 加载并调整图像大小  
-        image = Image.open(image_path)
-        image = image.resize((200, 200), Image.LANCZOS)
-        photo = ImageTk.PhotoImage(image)
-        
-        self.warma_label = tk.Label(self.background_label, image=photo)
-        self.warma_label.pack(expand=True, fill="both")
-        
-        # 绑定自动函数
-        self.warma_label.after(60000, func=lambda: self.menu_eatshark(image_path="Image\\eatshark.gif", sound_path="Sound\\eatshark.wav", auto=True))
-        self.warma_label.after(600000, func=lambda: self.menu_sleep(image_path="Image\\sleep.gif", sound_path="Sound\\sleep.wav", auto=True))
-        
-        # 保持对PhotoImage的引用  
-        self.warma_label.image = photo
-        
-    def menu_talk(self, image_path, sound_path):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                sound = random.choice(sound_path)
-                sound_clip = AudioFileClip(sound)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound,  winsound.SND_ASYNC | winsound.SND_FILENAME)  #播放音频(下同)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.talk_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.talk_gif.pack(expand=True, fill="both") 
-            self.talk_gif.after(int(sound_time * 1000), func=self.talk_gif.destroy)  #播放GIF动图(下同)
-            
-    def menu_walk(self, image_path, sound_path):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            x = random.randint(0, self.winfo_screenwidth())
-            y = random.randint(0, self.winfo_screenheight())
-            try:
-                sound_clip = AudioFileClip(sound_path)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.walk_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.walk_gif.pack(expand=True, fill="both") 
-            self.walk_gif.after(int(sound_time * 1000), func=self.walk_gif.destroy)
-            self.geometry("+{0}+{1}".format(x, y)) 
-        
-    def menu_sleep(self, image_path, sound_path, auto):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            if auto:
-                pass
-            else:
-                messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.sleep_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.sleep_gif.pack(expand=True, fill="both") 
-            self.sleep_gif.after(600000, func=self.sleep_gif.destroy)  # 睡觉时间依旧固定,不该时间
-        
-    def menu_eatshark(self, image_path, sound_path, auto):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                sound_clip = AudioFileClip(sound_path)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.eatshark_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.eatshark_gif.pack(expand=True, fill="both")
-            self.eatshark_gif.after(int(sound_time * 1000), func=self.eatshark_gif.destroy)
-        
-    def menu_nicesound(self, image_path, sound_path):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                sound_clip = AudioFileClip(sound_path)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.nicesound_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.nicesound_gif.pack(expand=True, fill="both")  
-            self.nicesound_gif.after(int(sound_time * 1000), func=self.nicesound_gif.destroy)
-        
-    def menu_eatearth(self, image_path, sound_path):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                sound_clip = AudioFileClip(sound_path)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.eatearth_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.eatearth_gif.pack(expand=True, fill="both") 
-            self.eatearth_gif.after(int(sound_time * 1000), func=self.eatearth_gif.destroy)          
-        
-    def menu_buy(self, image_path, sound_path):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                sound_clip = AudioFileClip(sound_path)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.buy_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.buy_gif.pack(expand=True, fill="both") 
-            self.buy_gif.after(int(sound_time * 1000), func=self.buy_gif.destroy)
-            
-    def menu_shark(self, image_path, sound_path):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                sound_clip = AudioFileClip(sound_path)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.shark_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.shark_gif.pack(expand=True, fill="both") 
-            self.shark_gif.after(int(sound_time * 1000), func=self.shark_gif.destroy)
-        
-    def menu_spider(self, image_path, sound_path):
-        packed_widgets = self.warma_label.pack_slaves()
-        if packed_widgets:
-            messagebox.showwarning("Warma正忙", "Warma一次只能干一件事哦~")
-        else:
-            try:
-                sound_clip = AudioFileClip(sound_path)
-                sound_time = sound_clip.duration
-                winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
-            except FileNotFoundError as e:
-                messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-            except RuntimeError as e:
-                messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
-            except Exception as e:
-                messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-            self.spider_gif = TkGifWidget.AnimatedGif(master=self.warma_label, file_path=image_path, play_mode="display", loop=0)
-            self.spider_gif.pack(expand=True, fill="both") 
-            self.spider_gif.after(int(sound_time * 1000), func=self.spider_gif.destroy)
-    
-    def menu_wakeup(self, sound_path):
+        self.bind_mouse_menu()
+ 
+    # 加载数据函数
+    def load_config_json(self, config_path):
         try:
-            winsound.PlaySound(sound_path,  winsound.SND_ASYNC | winsound.SND_FILENAME)
+            with open(config_path, 'r', encoding="utf-8") as file:
+                self.config = json.load(file)  
         except FileNotFoundError as e:
-            messagebox.showerror("错误", "音频文件已丢失或损坏!请检查是不是被Warma吃掉了。错误信息\n" + str(e))
-        except RuntimeError as e:
-            messagebox.showerror("错误", "播放器错误,请检测程序是否正确安装。错误信息:\n" + str(e))
+            self.file_not_found_error(e)
         except Exception as e:
-            messagebox.showerror("错误", "神秘错误,疑似Warma星球的外星人入侵。依我所见不如重新安装吧!")
-        try:
-            self.sleep_gif.destroy()
-        except AttributeError:
-            messagebox.showwarning("嘿!", "Warma醒着呢!")
-        
-    def bilibili_warma(self):
-        webbrowser.open(url="https://space.bilibili.com/53456/", new=2)  # 打开Warma主页
-        
-    def settings(self):
-        settings_window = SettingsWindow()
+            self.exception(e)
 
-    def close(self, sound_path):
-        winsound.PlaySound(sound_path, winsound.SND_FILENAME)
-        self.destroy()
+    def load_pet_info_json(self, config_path):
+        try:
+            with open(config_path, 'r', encoding="utf-8") as file:
+                self.pet_info_config = json.load(file)  
+        except FileNotFoundError as e:
+            self.file_not_found_error(e)
+        except Exception as e:
+            self.exception(e)
+
+    def load_pet_menu_json(self, config_path):
+        try:
+            with open(config_path, 'r', encoding="utf-8") as file:
+                self.pet_menu_config = json.load(file)  
+        except FileNotFoundError as e:
+            self.file_not_found_error(e)
+        except Exception as e:
+            self.exception(e)
+
+    def load_pet_names(self, pets_path, config_path, info_filename):
+        self.pet_names = []
+
+        # 遍历 Pets 文件夹下的所有文件夹
+        for pet_folder in os.listdir(pets_path):
+            pet_folder_path = os.path.join(pets_path, pet_folder)
+
+            if os.path.isdir(pet_folder_path):
+                config_folder_path = os.path.join(pet_folder_path, config_path)
+                if os.path.isdir(config_folder_path):
+                    info_file_path = os.path.join(config_folder_path, info_filename)
+                    if os.path.isfile(info_file_path):
+                        try:
+                            with open(info_file_path, 'r', encoding='utf-8') as info_file:
+                                info_data = json.load(info_file)
+                                # 获取 pet_info 下的 name 项并添加到列表中
+                                pet_name = info_data.get('pet_info', {}).get('name')
+                                if pet_name:
+                                    self.pet_names.append(pet_name)
+                        except json.JSONDecodeError as e:
+                            self.json_decode_error(e)
+
+    # 错误处理函数
+    def file_not_found_error(self, error):
+        messagebox.showerror("错误", f"文件丢失!疑似被沃星人偷走! Error:{str(error)}")
+
+    def json_decode_error(self, error):
+        messagebox.showerror("错误", f"配置文件错误!是不是改文件时写错了? Error:{str(error)}")
+
+    def type_error(self, error):
+        messagebox.showerror("错误", f"格式处理错误,请检查配置文件是否正确! Error:{str(error)}")
+
+    def runtime_error(self, error):
+        messagebox.showerror("错误", f"音频播放器错误!请检查沃玛是否正确入住电脑。 Error:{str(error)}")
+
+    def be_busy_warning(self):
+        messagebox.showwarning("嗨!", "沃玛只可以做一件事哦!")
+
+    def attribute_error(self, error):
+        messagebox.showwarning("嗨", f"沃玛什么事也没干!")
+
+    def restart_warning(self):
+        restart = messagebox.askyesno("完成", "为了执行您的操作,请点击确定重新启动程序!")
+        if restart:
+            os.execv(sys.executable, ['python'] + sys.argv)
+
+    def exception(self, error):
+        messagebox.showerror("神秘错误", f"发生了神秘错误! {error}")
+
+    # 正常状态图片播放
+    def set_pet_image(self):
+        try:
+            image = Image.open(self.pet_info_config['pet_info']['main_image_path'])
+            image = image.resize((self.width, self.height), Image.LANCZOS)
+            photo = ImageTk.PhotoImage(image)
+
+            self.pet_image = tk.Label(self, image=photo, bg=self.TRANSCOLOUR)
+            self.pet_image.pack(expand=True, fill="both")
+            self.pet_image.image = photo  # 保持引用
+
+            # 确保图片加载完毕后再调用呼吸函数
+            self.breathing_in_out()
+        except FileNotFoundError as e:
+            self.file_not_found_error(e)
+        except Exception as e:
+            self.exception(e)
+
+    def breathing_in_out(self):
+        try:
+            new_width = int(self.width * (1 + self.breathing_factor))
+            new_height = int(self.height * (1 + self.breathing_factor))
+            
+            image = Image.open(self.pet_info_config['pet_info']['main_image_path'])
+            image = image.resize((new_width, new_height), Image.LANCZOS)
+            photo = ImageTk.PhotoImage(image)
+            
+            self.pet_image.config(image=photo)
+            self.pet_image.image = photo
+
+            # 反向进行动画
+            self.breathing_factor *= -1
+        except FileNotFoundError as e:
+            self.file_not_found_error(e)
+        except Exception as e:
+            self.exception(e)
+
+        # 递归
+        self.after(self.breathing_speed, self.breathing_in_out)
+
+
+    # 动画播放函数
+    def animation_player(self, action_name):
+        action_config = self.pet_menu_config['menu_items'].get(action_name)
+
+        self.move = action_config.get('move', False)
+        self.end_until_sound = action_config.get('end_until_sound', False)
+        self.multi_sound = action_config.get('multi_sound', False)
+
+        self.simple_animation_play(action_config, False)
+
+    def simple_animation_play(self, action_config, auto): 
+        self.stop_animation_play()
+
+        self.animation = TkGifWidget.AnimatedGif(master=self.pet_image, file_path=action_config.get('image_path'), play_mode="display", loop=None, bg=self.TRANSCOLOUR)
+        self.animation.pack(expand=True, fill="both")
         
-    # 小托盘功能
+        if self.multi_sound:
+            try:
+                sound_path = random.choice(action_config.get('sound_path', []))
+            except FileNotFoundError as e:
+                self.file_not_found_error(e)
+            except TypeError as e:
+                self.type_error(e)
+            except Exception as e:
+                self.exception(e)
+        else:
+            try:
+                sound_path = action_config.get('sound_path')
+            except FileNotFoundError as e:
+                self.file_not_found_error(e)
+            except TypeError as e:
+                self.type_error(e)
+            except Exception as e:
+                self.exception(e)
+        
+        if self.move:
+            self.moving = True
+            self.move_animation_play(action_config)
+
+        try:
+            winsound.PlaySound(sound_path, winsound.SND_ASYNC | winsound.SND_FILENAME)  #播放音频
+        except RuntimeError as e:
+            self.runtime_error(e)
+        except FileNotFoundError as e:
+            self.file_not_found_error(e)
+        except Exception as e:
+            self.exception(e)
+        
+        if self.end_until_sound:
+            self.animation.loop = 0
+            sound_clip = AudioFileClip(sound_path)
+            sound_time = sound_clip.duration
+            self.animation.after(int(sound_time * 1000), func=self.stop_animation_play)
+        else:
+            self.animation.play_end_func = self.stop_animation_play
+
+    def move_animation_play(self, action_config):
+        if action_config.get('is_move_right'):
+            if not self.moving:
+                return
+            try:
+                step = action_config.get('move_speed')
+            except FileNotFoundError as e:
+                self.file_not_found_error(e)
+            except TypeError as e:
+                self.type_error(e)
+            except Exception as e:
+                self.exception(e)
+            x = self.winfo_x()
+            new_x = x + step
+            self.geometry(f"+{new_x}+{self.winfo_y()}")
+            self.after(100, lambda: self.move_animation_play(action_config))
+        else:
+            if not self.moving:
+                return
+            try:
+                step = action_config.get('move_speed')
+            except FileNotFoundError as e:
+                self.file_not_found_error(e)
+            except TypeError as e:
+                self.type_error(e)
+            except Exception as e:
+                self.exception(e)
+            x = self.winfo_x()
+            new_x = x - step
+            self.geometry(f"+{new_x}+{self.winfo_y()}")
+            self.after(100, lambda: self.move_animation_play(action_config))
+
+    def auto_animation_play(self):
+        auto_actions = list(self.pet_menu_config['auto_items'].keys())
+        auto_action = random.choice(auto_actions)
+        action_config = self.pet_menu_config['auto_items'].get(auto_action)
+
+        self.simple_animation_play(action_config, True)
+
+    def stop_animation_play(self, *args):
+        if self.animation:
+            try:
+                self.animation.destroy()
+            except AttributeError as e:
+                self.attribute_error(e)
+        self.animation = None
+        self.moving = False
+        try:
+            winsound.PlaySound(None, winsound.SND_ASYNC | winsound.SND_FILENAME)  #播放音频
+        except RuntimeError as e:
+            self.runtime_error(e)
+        except FileNotFoundError as e:
+            self.file_not_found_error(e)
+        except Exception as e:
+            self.exception(e)
+
+    # 角色切换函数
+    def change_pets(self, pet_name):
+        pets_path = "Pets"
+        for pet_folder in os.listdir(pets_path):
+            pet_folder_path = os.path.join(pets_path, pet_folder)
+            config_folder_path = os.path.join(pet_folder_path, "Config")
+            info_file_path = os.path.join(config_folder_path, "Info.json")
+            
+            if os.path.isfile(info_file_path):
+                try:
+                    with open(info_file_path, 'r', encoding='utf-8') as info_file:
+                        info_data = json.load(info_file)
+
+                        current_pet_name = info_data.get('pet_info', {}).get('name')
+                        current_path_name = info_data.get('pet_info', {}).get('path_name')
+
+                        if current_pet_name == pet_name:
+                            # 更新 Config.json 中的 master 项
+                            config_path = "Config\\Config.json"
+                            with open(config_path, 'r', encoding="utf-8") as file:
+                                config_data = json.load(file)
+                            config_data['pets']['master'] = current_path_name
+                            
+                            with open(config_path, 'w', encoding="utf-8") as file:
+                                json.dump(config_data, file, ensure_ascii=False, indent=4)
+                            
+                            # 重新加载宠物信息
+                            self.load_pet_info_json(f"Pets\\{current_path_name}\\Config\\Info.json")
+                            self.load_pet_menu_json(f"Pets\\{current_path_name}\\Config\\Menu.json")
+
+                except json.JSONDecodeError as e:
+                    self.json_decode_error(e)
+                except FileNotFoundError as e:
+                    self.file_not_found_error(e)
+                except Exception as e:
+                    self.exception(e)
+
+    # 菜单绑定的其他函数与小托盘绑定的函数
+    def create_settings_window(self):
+        settings_window = SettingsWindow()
+    
     def show_window(self):
         self.deiconify()
         self.icon.stop()
@@ -275,44 +342,42 @@ class PetWindow(tk.Tk):
     def quit_window(self):
         self.icon.stop()
         self.destroy()
-  
-    def unshow_window(self, image_path):  # 收入小托盘
+    
+    def unshow_window(self, image_path):
         self.withdraw()
         menu = (pystray.MenuItem(text="启动", action=self.show_window, default=True),
                 pystray.MenuItem(text="啊——", action=self.show_message),
                 pystray.MenuItem(text="退出", action=self.quit_window)
         )
         image = Image.open(image_path)
-        self.icon = pystray.Icon("Warma桌宠", image, "nia~", menu)
+        self.icon = pystray.Icon("沃玛桌宠", image, "nia~", menu)
         self.icon.run()
-  
-    def show_menu(self, event):  
-        menu = tk.Menu(self, tearoff=0)  
-        menu.add_command(label="说话", command=lambda: self.menu_talk(image_path="Image\\talk.gif", sound_path=["Sound\\talk_1.wav", "Sound\\talk_2.wav", "Sound\\talk_3.wav"]))
-        menu.add_command(label="走路", command=lambda: self.menu_walk(image_path="Image\\walk.gif", sound_path="Sound\\walk.wav"))
-        menu.add_command(label="睡觉", command=lambda: self.menu_sleep(image_path="Image\\sleep.gif", sound_path="Sound\\sleep.wav", auto=False))
+
+    def exit_window(self):
+        self.destroy()
+
+    # 菜单函数
+    def create_menu(self, event):
+        menu = tk.Menu(self, tearoff=0)
+        for menu_item_name in self.pet_menu_config['menu_items']:
+            menu.add_command(label=menu_item_name, command=lambda name=menu_item_name: self.animation_player(name))
         menu.add_separator()
-        menu.add_command(label="尝鲨", command=lambda: self.menu_eatshark(image_path="Image\\eatshark.gif", sound_path="Sound\\eatshark.wav", auto=False))
-        menu.add_command(label="吹灭人器", command=lambda: self.menu_nicesound(image_path="Image\\nicesound.gif", sound_path="Sound\\nicesound.wav"))
-        menu.add_command(label="吃地球", command=lambda: self.menu_eatearth(image_path="Image\\eatearth.gif", sound_path="Sound\\eatearth.wav"))
-        menu.add_command(label="买吗?", command=lambda: self.menu_buy(image_path="Image\\buy.gif", sound_path="Sound\\buy.wav"))
+
+        for menu_item_pets_name in self.pet_names:
+            menu.add_command(label=f"切换角色为{menu_item_pets_name}", command=lambda name=menu_item_pets_name: self.change_pets(name))
         menu.add_separator()
-        menu.add_command(label="小鲨鱼", command=lambda: self.menu_shark(image_path="Image\\shark.gif", sound_path="Sound\\shark.wav"))
-        menu.add_command(label="蜘蛛啊!", command=lambda: self.menu_spider(image_path="Image\\spider.gif", sound_path="Sound\\spider.wav"))
+        # 添加其他菜单项
+        menu.add_command(label="停止", command=self.stop_animation_play)
+        menu.add_command(label="设置", command=self.create_settings_window)
         menu.add_separator()
-        menu.add_command(label="看Warma视频", command=self.bilibili_warma)
-        menu.add_separator()
-        menu.add_command(label="设置", command=self.settings)
-        menu.add_separator()
-        menu.add_command(label="叫醒Warma", command=lambda: self.menu_wakeup(sound_path="Sound\\talk_1.wav"))
-        menu.add_command(label="收入小托盘", command=lambda: self.unshow_window(image_path="Image\\icon.png"))
-        menu.add_command(label="再见", command=lambda: self.close(sound_path="Sound\\bye.wav")) 
-        menu.post(event.x_root, event.y_root)  
-  
-    def bind_mouse_menu(self):  
-        # 绑定右键点击事件来显示菜单  
-        self.bind("<Button-3>", self.show_menu)  
-        
+        menu.add_command(label="收入小托盘", command=lambda: self.unshow_window("icon.ico"))
+        menu.add_command(label="再见", command=self.exit_window)
+        menu.post(event.x_root, event.y_root)
+
+    # 事件绑定函数  
+    def bind_mouse_menu(self):
+        self.bind("<Button-3>", self.create_menu)
+
     def bind_mouse_touch_event(self, event):
         self.start_x = self.winfo_pointerx() - self.winfo_rootx()
         self.start_y = self.winfo_pointery() - self.winfo_rooty()
@@ -329,5 +394,5 @@ class PetWindow(tk.Tk):
         self.bind("<B1-Motion>", self.bind_mouse_move_event)
 
 if __name__ == "__main__":  
-    app = PetWindow()  
+    app = PetWindow()
     app.mainloop()
