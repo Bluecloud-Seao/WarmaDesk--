@@ -25,7 +25,7 @@
             "image_path": "Pets\\Warma\\Image\\buy.gif",
             "sound_path": "Pets\\Warma\\Sound\\buy.wav",
             "move": false,
-            "end_until_sound": false,
+            "end_until_sound": true,
             "multi_sound": false
         },
         "睡觉": {

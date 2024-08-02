@@ -24,6 +24,7 @@ class PetWindow(tk.Tk):
         # 初始化呼吸动画
         self.breathing_factor = 0.008  # 呼吸效果的缩放比例因子
         self.breathing_speed = 550  # 注意!数值越小，动画越快
+        self.breathing_switch = True
 
         # 加载数据
         self.load_config_json("Config\\Config.json")  # 公共数据
@@ -148,6 +149,7 @@ class PetWindow(tk.Tk):
             self.pet_image = tk.Label(self, image=photo, bg=self.TRANSCOLOUR)
             self.pet_image.pack(expand=True, fill="both")
             self.pet_image.image = photo  # 保持引用
+            self.pet_image.lower()
 
             # 确保图片加载完毕后再调用呼吸函数
             self.breathing_in_out()
@@ -157,6 +159,8 @@ class PetWindow(tk.Tk):
             self.exception(e)
 
     def breathing_in_out(self):
+        if not self.breathing_switch:
+            return
         try:
             new_width = int(self.width * (1 + self.breathing_factor))
             new_height = int(self.height * (1 + self.breathing_factor))
@@ -177,6 +181,10 @@ class PetWindow(tk.Tk):
 
         # 递归
         self.after(self.breathing_speed, self.breathing_in_out)
+        
+    def restart_breathing_animation(self):
+        self.breathing_switch = True
+        self.breathing_in_out()
 
 
     # 动画播放函数
@@ -191,9 +199,15 @@ class PetWindow(tk.Tk):
 
     def simple_animation_play(self, action_config, auto): 
         self.stop_animation_play()
+        
+        self.breathing_switch = False
 
-        self.animation = TkGifWidget.AnimatedGif(master=self.pet_image, file_path=action_config.get('image_path'), play_mode="display", loop=None, bg=self.TRANSCOLOUR)
+        self.animation_frame = tk.Frame(self.pet_image, bg=self.TRANSCOLOUR)
+        self.animation_frame.pack(expand=True, fill="both")
+        
+        self.animation = TkGifWidget.AnimatedGif(master=self.animation_frame, file_path=action_config.get('image_path'), play_mode="display", loop=None, bg=self.TRANSCOLOUR)
         self.animation.pack(expand=True, fill="both")
+        self.animation.lift()
         
         if self.multi_sound:
             try:
@@ -229,7 +243,12 @@ class PetWindow(tk.Tk):
         
         if self.end_until_sound:
             self.animation.loop = 0
-            sound_clip = AudioFileClip(sound_path)
+            try:
+                sound_clip = AudioFileClip(sound_path)
+            except FileNotFoundError as e:
+                self.file_not_found_error(e)
+            except Exception as e:
+                self.exception(e)
             sound_time = sound_clip.duration
             self.animation.after(int(sound_time * 1000), func=self.stop_animation_play)
         else:
@@ -277,11 +296,15 @@ class PetWindow(tk.Tk):
     def stop_animation_play(self, *args):
         if self.animation:
             try:
+                self.animation_frame.destroy()
                 self.animation.destroy()
             except AttributeError as e:
                 self.attribute_error(e)
+        self.animation_frame = None
         self.animation = None
         self.moving = False
+        
+        self.restart_breathing_animation()
         try:
             winsound.PlaySound(None, winsound.SND_ASYNC | winsound.SND_FILENAME)  #播放音频
         except RuntimeError as e:
