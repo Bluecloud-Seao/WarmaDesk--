@@ -25,6 +25,9 @@ class PetWindow(tk.Tk):
         self.breathing_factor = 0.008  # 呼吸效果的缩放比例因子
         self.breathing_speed = 550  # 注意!数值越小，动画越快
         self.breathing_switch = True
+        
+        # 初始化路径
+        self.get_program_path()
 
         # 加载数据
         self.load_config_json("Config\\Config.json")  # 公共数据
@@ -61,6 +64,13 @@ class PetWindow(tk.Tk):
         self.bind_mouse_touch() 
         self.bind_mouse_move() 
         self.bind_mouse_menu()
+        
+    # 初始化路径函数
+    def get_program_path(self):
+        # 获得绝对路径
+        program_path = os.path.abspath(sys.argv[0])
+        program_dir = os.path.dirname(program_path)
+        os.chdir(program_dir)
  
     # 加载数据函数
     def load_config_json(self, config_path):
